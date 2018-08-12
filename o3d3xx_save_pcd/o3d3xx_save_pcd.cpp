@@ -31,7 +31,7 @@ int main(int argc, char **argv)
 	std::string command = "";
 	int res = 0, loop_count_by_100 = 100;
 	char response[256] = { 0 }, err[256] = { 0 };
-	std::vector<float> ampl;
+	std::vector<unsigned> flags;
 	std::vector<float> dist;
 	std::vector<float> xyz3Dcoordinate;
 	std::string diagnosticData = "";
@@ -109,6 +109,19 @@ int main(int argc, char **argv)
 	cloud->height = 1;
 	cloud->is_dense = false;
 	cloud->points.resize(cloud->width * cloud->height);
+	flags.resize(imgWidth * imgHeight);
+
+	res = pmdGetFlags(hnd, &flags[0], flags.size() * sizeof(float));
+	if (res != PMD_OK)
+	{
+		pmdGetLastError(hnd, err, 128);
+		fprintf(stderr, "Could not get flag data: \n%s\n", err);
+		pmdClose(hnd);
+		printf("Camera Connection Closed. \n");
+		getchar();
+		return res;
+	}
+
 	res = pmdGet3DCoordinates(hnd, &xyz3Dcoordinate[0], xyz3Dcoordinate.size() * sizeof(float));
 
 	if (res != PMD_OK)
@@ -117,13 +130,21 @@ int main(int argc, char **argv)
 		pmdClose(hnd);
 		return PMD_RUNTIME_ERROR;
 	}
-
+	int counter = 0;
 	for (size_t i = 0; i < imgHeight * imgWidth; i++)
 	{
-		cloud->points[i].x = xyz3Dcoordinate[i * 3 + 0];
-		cloud->points[i].y = xyz3Dcoordinate[i * 3 + 1];
-		cloud->points[i].z = xyz3Dcoordinate[i * 3 + 2];
+		if (!(flags[i] & 1))
+		{
+			cloud->points[i].x = xyz3Dcoordinate[i * 3 + 0];
+			cloud->points[i].y = xyz3Dcoordinate[i * 3 + 1];
+			cloud->points[i].z = xyz3Dcoordinate[i * 3 + 2];
+			counter++;
+		}
 	}
+
+	cloud->width = counter;
+	cloud->points.resize(counter);
+
 	int ret = pcl::io::savePCDFile("o3d3xx_save_test.pcd", *cloud);
 	std::cerr << "Saved " << cloud->points.size() << " data points to o3d3xx_save_test.pcd." << std::endl;
 	
