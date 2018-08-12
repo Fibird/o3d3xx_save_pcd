@@ -107,7 +107,8 @@ int main(int argc, char **argv)
 	pcl::PointCloud<pcl::PointXYZ>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZ>);
 	cloud->width = imgHeight * imgWidth;
 	cloud->height = 1;
-	
+	cloud->is_dense = false;
+	cloud->points.resize(cloud->width * cloud->height);
 	res = pmdGet3DCoordinates(hnd, &xyz3Dcoordinate[0], xyz3Dcoordinate.size() * sizeof(float));
 
 	if (res != PMD_OK)
@@ -123,7 +124,8 @@ int main(int argc, char **argv)
 		cloud->points[i].y = xyz3Dcoordinate[i * 3 + 1];
 		cloud->points[i].z = xyz3Dcoordinate[i * 3 + 2];
 	}
-	pcl::io::savePCDFile("o3d3xx_save_test.pcd", *cloud);
+	int ret = pcl::io::savePCDFile("o3d3xx_save_test.pcd", *cloud);
+	std::cerr << "Saved " << cloud->points.size() << " data points to o3d3xx_save_test.pcd." << std::endl;
 	
 	printf("\n Closing connection 1 \n");
 	res = pmdClose(hnd);
